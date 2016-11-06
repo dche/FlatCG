@@ -1,0 +1,15 @@
+
+language: swift
+
+matrix:
+    include:
+        - os: osx
+          osx_image: xcode8
+        # - os: linux
+        #   dist: trusty
+        #   sudo: required
+
+script:
+    - swift package update
+    - swift build
+    - swift test
