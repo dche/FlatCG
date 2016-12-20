@@ -6,19 +6,20 @@
 
 import GLMath
 
-/// Sphere in 3D Euclidean space.
-public struct Sphere: Equatable {
+/// The (_n-sphere_)[https://en.wikipedia.org/wiki/N-sphere], which is the
+/// generalized concept of circle and sphere.
+public struct Nsphere<T: Point>: Equatable, CustomDebugStringConvertible {
 
-    /// Center point of the sphere.
-    public let center: Point3D
+    /// Center of the n-sphere.
+    public let center: T
 
-    /// Radius of the sphere. This value could be `0`.
-    public let radius: Float
+    /// Radius of the n-sphere.
+    public let radius: T.VectorType.Component
 
-    /// Constructs a `Sphere`.
+    /// Constructs a `Nsphere` with given `center` and `radius`.
     ///
     /// Returns `nil` if `radius` is negative.
-    public init? (center: Point3D, radius: Float) {
+    public init? (center: T, radius: T.VectorType.Component) {
         guard radius >= 0 else { return nil }
 
         self.center = center
@@ -26,41 +27,49 @@ public struct Sphere: Equatable {
     }
 }
 
-extension Sphere {
+extension Nsphere {
 
-    public init? (x: Float, y: Float, z: Float, radius: Float) {
-        self.init(center: Point3D(x, y, z), radius: radius)
-    }
-
-    public static func == (lhs: Sphere, rhs: Sphere) -> Bool {
+    public static func == (lhs: Nsphere, rhs: Nsphere) -> Bool {
         return lhs.center == rhs.center && lhs.radius == rhs.radius
     }
-}
-
-extension Sphere: Interpolatable {
-
-    public typealias NumberType = Point3D.NumberType
-
-    public func interpolate(between other: Sphere, t: Float) -> Sphere {
-        let c = self.center.interpolate(between: other.center, t: t)
-        let r = max(self.radius.interpolate(between: other.radius, t: t), 0)
-        return Sphere(center: c, radius: r)!
-    }
-}
-
-extension Sphere: CustomDebugStringConvertible {
 
     public var debugDescription: String {
-        return "Sphere(center: \(center), radius: \(radius))"
+        return "Nsphere(center: \(center), radius: \(radius))"
     }
 }
 
 // MARK: Sphere point relationship.
 
-extension Sphere {
+extension Nsphere {
 
     /// Returns `true` if the `point` is inside the receiver.
-    public func contains(point: Point3D) -> Bool {
+    public func contains(point: T) -> Bool {
         return (point - self.center).squareLength < self.radius * self.radius
     }
 }
+
+extension Nsphere where T.VectorType: Vector2 {
+
+    public init? (
+        x: T.VectorType.Component,
+        y: T.VectorType.Component,
+        radius: T.VectorType.Component
+    ) {
+        self.init(center: T(T.VectorType(x, y)), radius: radius)
+    }
+}
+
+extension Nsphere where T.VectorType: Vector3 {
+
+    public init? (
+        x: T.VectorType.Component,
+        y: T.VectorType.Component,
+        z: T.VectorType.Component,
+        radius: T.VectorType.Component
+    ) {
+        self.init(center: T(T.VectorType(x, y, z)), radius: radius)
+    }
+}
+
+public typealias Circle = Nsphere<Point2D>
+public typealias Sphere = Nsphere<Point3D>

@@ -17,7 +17,7 @@ class QuaternionTests: XCTestCase {
     // func testFromMatrix() {}
 
     func testFromAxisAngle() {
-        let q = Quaternion(axis: vec3(0, 1, 0), angle: .half_pi)
+        let q = Quaternion(axis: Normal3D(vec3.y), angle: .half_pi)
         let (axis, angle) = q.axisAngle
         XCTAssert(axis ~== vec3(0, 1, 0))
         XCTAssert(angle.isClose(to: .half_pi, tolerance: .epsilon * 10))
@@ -26,7 +26,7 @@ class QuaternionTests: XCTestCase {
         XCTAssert(v ~== vec3(0, 0, -1))
 
         XCTAssert(quickCheck(Gen<vec3>(), Gen<Float>(), size: 100) { axis, angle in
-            let q = Quaternion(axis: axis, angle: angle * .tau)
+            let q = Quaternion(axis: Normal3D(vector: axis), angle: angle * .tau)
             let (ax, ag) = q.axisAngle
             return ax.isClose(to: axis.normalize, tolerance: .epsilon * 1000) && ag.isClose(to: angle * .tau, tolerance: .epsilon * 1000)
         })
@@ -34,8 +34,8 @@ class QuaternionTests: XCTestCase {
 
     func testFromVectors() {
         XCTAssert(quickCheck(Gen<vec3>(), Gen<vec3>(), size: 100) { a, b in
-            let na = Normal<Point3D>(a)
-            let nb = Normal<Point3D>(b)
+            let na = Normal<Point3D>(vector: a)
+            let nb = Normal<Point3D>(vector: b)
             let q = Quaternion(fromDirection: na, to: nb)
             return q.apply(na.vector).isClose(to: nb.vector, tolerance: .epsilon * 1000)
         })

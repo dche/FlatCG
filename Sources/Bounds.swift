@@ -8,29 +8,33 @@ import simd
 import GLMath
 
 /// Axis-aligned bounding box.
-public struct Bounds<T: Point> {
+public protocol Bounds: Equatable, CustomDebugStringConvertible, Transformable {
 
-    public typealias PointType = T
+    associatedtype PointType: Point
 
-    fileprivate let pmin: T
+    var pmin: PointType { get }
 
-    fileprivate let pmax: T
+    var pmax: PointType { get }
 
-    /// Constructs a `Bounds` with given 2 points.
-    public init (_ a: T, _ b: T) {
-        self.pmin = T(min(a.vector, b.vector))
-        self.pmax = T(max(a.vector, b.vector))
-    }
+    init (_ a: PointType, _ b: PointType)
+
+    /// A degenerate bounding box that can be contained in any boxes.
+    static var empty: Self { get }
+
+    var surfaceArea: PointType.VectorType.Component { get }
+
+    func contains(point: PointType) -> Bool
 }
 
-extension Bounds: Equatable {
+extension Bounds {
 
-    public static func == (lhs: Bounds, rhs: Bounds) -> Bool {
+    public init (_ point: PointType) {
+        self.init(point, point)
+    }
+
+    public static func == (lhs: Self, rhs: Self) -> Bool {
         return lhs.pmin == rhs.pmin && lhs.pmax == rhs.pmax
     }
-}
-
-extension Bounds: CustomDebugStringConvertible {
 
     public var debugDescription: String {
         return "Bounds(min: \(pmin), max: \(pmax))"
@@ -39,63 +43,172 @@ extension Bounds: CustomDebugStringConvertible {
 
 extension Bounds {
 
-    /// Returns `true` if the receiver is empty. 
-    ///
-    /// An empty `Bounds` has identical maximal and minimal points.
-    public var isEmpty: Bool { return pmin == pmax }
+    /// Returns `true` if the receiver is the empty bounding box.
+    public var isEmpty: Bool { return self == .empty }
 
     /// Merges the receiver with `other` `Bounds`.
     ///
-    /// - returns The new `Bounds`.
-    public func merge(_ other: Bounds) -> Bounds {
+    /// - returns: The new `Bounds`.
+    public func merge(_ other: Self) -> Self {
+        guard !self.isEmpty else { return other }
         let mn = min(self.pmin.vector, other.pmin.vector)
         let mx = max(self.pmax.vector, other.pmax.vector)
-        return Bounds(T(mn), T(mx))
+        return Self(PointType(mn), PointType(mx))
     }
 
-    /// Tests if the receiver contains a `point`.
-    public func contains(point: T) -> Bool {
+    public func merge(point: PointType) -> Self {
         let v = point.vector
-        let mn = pmin.vector
-        let mx = pmax.vector
-        for i in 0 ..< T.VectorType.dimension {
-            guard v[i] >= mn[i] && v[i] <= mx[i] else { return false }
-        }
-        return true
+        let mn = min(self.pmin.vector, v)
+        let mx = max(self.pmax.vector, v)
+        return Self(PointType(mn), PointType(mx))
     }
 
     /// Constructs a `Bounds` that contains all the `points`.
-    ///
-    /// Returns `nil` if `points` is empty.
-    public init? (of points: [T]) {
-        guard points.count > 0 else { return nil }
-
-        var mn = points[0].vector
-        var mx = points[0].vector
-        for p in points.dropFirst() {
-            mn = min(mn, p.vector)
-            mx = max(mx, p.vector)
+    public init (of points: [PointType]) {
+        if points.count < 1 {
+            self = .empty
+        } else {
+            var mn = points[0].vector
+            var mx = points[0].vector
+            for p in points.dropFirst() {
+                mn = min(mn, p.vector)
+                mx = max(mx, p.vector)
+            }
+            self = Self(PointType(mn), PointType(mx))
         }
-        self = Bounds(T(mn), T(mx))
+    }
+
+    /// Expands the bounding box by the amound `delta` in all dimensions.
+    public func expand(_ delta: PointType.VectorType.Component) -> Self {
+        let d = PointType.VectorType(max(delta, 0))
+        let mn = pmin.vector - d
+        let mx = pmax.vector + d
+        return Self(PointType(mn), PointType(mx))
     }
 }
 
 extension Bounds {
 
-    /// Center of the `Bounds`.
-    public var center: T { return T((self.pmax.vector + self.pmin.vector) * 0.5) }
+    /// Center of the bounding box.
+    public var center: PointType {
+        if self.isEmpty { return PointType.origin }
+        return PointType((self.pmax.vector + self.pmin.vector) * 0.5)
+    }
 
     /// The vector from the minimal point of the `Bounds` to its maximal
     /// point.
-    public var diagnal: T.VectorType { return self.pmax.vector - self.pmin.vector }
+    public var diagnal: PointType.VectorType {
+        if self.isEmpty { return .zero }
+        return self.pmax.vector - self.pmin.vector
+    }
 
-    public var extent: T.VectorType { return self.diagnal * 0.5 }
+    public var extent: PointType.VectorType { return self.diagnal * 0.5 }
 }
 
-public typealias Bounds2D = Bounds<Point2D>
+/// 2D axis-aligned bounding box.
+public struct Bounds2<T: Point>: Bounds where T: Transformable, T.TransformType == Transform<T>, T.VectorType: Vector2 {
 
-// TODO: boundingCircle, area
+    public typealias PointType = T
 
-public typealias Bounds3D = Bounds<Point3D>
+    public let pmin, pmax: T
 
-// TODO: boundingSphere, volume
+    private init (_ mn: T.VectorType, _ mx: T.VectorType) {
+        self.pmin = PointType(mn)
+        self.pmax = PointType(mx)
+    }
+
+    public init(_ a: PointType, _ b: PointType) {
+        self.init(min(a.vector, b.vector), max(a.vector, b.vector))
+    }
+
+    public static var empty: Bounds2<T> {
+        return Bounds2<T>(.infinity, -.infinity)
+    }
+
+    public var surfaceArea: T.VectorType.Component {
+        let d = diagnal
+        return d.x * d.y
+    }
+
+    public func contains(point: T) -> Bool {
+        let v = point.vector
+        let vmn = pmin.vector
+        let vmx = pmax.vector
+        return v.x >= vmn.x && v.x <= vmx.x && v.y >= vmn.y && v.y <= vmx.y
+    }
+
+    public func apply(transform: Transform<T>) -> Bounds2<T> {
+        let pts = [
+            pmin,
+            pmax,
+            T(T.VectorType(pmin.vector.x, pmax.vector.y)),
+            T(T.VectorType(pmax.vector.x, pmin.vector.y))
+        ]
+        return Bounds2<T>(of: pts.map { $0.apply(transform: transform) })
+    }
+}
+
+/// 3D axis-aligned bounding box.
+public struct Bounds3D: Bounds {
+
+    public typealias PointType = Point3D
+
+    public let pmin, pmax: Point3D
+
+    private init (_ mn: vec3, _ mx: vec3) {
+        self.pmin = PointType(mn)
+        self.pmax = PointType(mx)
+    }
+
+    public init(_ a: Point3D, _ b: Point3D) {
+        self.init(min(a.vector, b.vector), max(a.vector, b.vector))
+    }
+
+    public static var empty: Bounds3D {
+        return Bounds3D(.infinity, -.infinity)
+    }
+
+    public var surfaceArea: Float {
+        let d: vec3 = self.diagnal
+        let a0 = d.x * d.y
+        let a1 = d.y * d.z
+        let a2 = d.z * d.x
+        return (a0 + a1 + a2) * 2
+    }
+
+    public var volume: Float {
+        let d = diagnal
+        return d.x * d.y * d.z
+    }
+
+    public func contains(point: Point3D) -> Bool {
+        let v = point.vector
+        let vmn = pmin.vector
+        let vmx = pmax.vector
+        return v.x >= vmn.x && v.x <= vmx.x &&
+            v.y >= vmn.y && v.y <= vmx.y &&
+            v.z >= vmn.z && v.z <= vmx.z
+    }
+
+    public func apply(transform: Transform3D) -> Bounds3D {
+        let m = transform.matrix
+        var nmin = m[3].xyz
+        var nmax = nmin
+        for i in 0 ..< 3 {
+            for j in 0 ..< 3 {
+                let x = m[j, i] * self.pmin.vector[j]
+                let y = m[j, i] * self.pmax.vector[j]
+                if x < y {
+                    nmin[i] += x
+                    nmax[i] += y
+                } else {
+                    nmin[i] += y
+                    nmax[i] += x
+                }
+            }
+        }
+        return Bounds3D(Point3D(nmin), Point3D(nmax))
+    }
+}
+
+public typealias Bounds2D = Bounds2<Point2D>
