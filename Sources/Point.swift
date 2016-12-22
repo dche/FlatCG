@@ -7,6 +7,12 @@
 import simd
 import GLMath
 
+// FIXME: Currently `Point` is choosed as the main type parameter of all
+//        geometry related types for carrying dimension and precision
+//        information. This is not ideal.
+//        Current design is hindered greatly by the generic type of SWIFT.
+//        Re-design is needed.
+
 /// A point in Euclidean space.
 public protocol Point: Equatable, ApproxEquatable, Interpolatable {
 
@@ -59,6 +65,36 @@ extension Point  {
     }
 }
 
+extension Point where VectorType: Vector2 {
+
+    public var x: VectorType.Component {
+        get { return vector.x }
+        set { vector.x = newValue }
+    }
+    public var y: VectorType.Component {
+        get { return vector.y }
+        set { vector.y = newValue }
+    }
+}
+
+extension Point where VectorType: Vector3 {
+
+    public var x: VectorType.Component {
+        get { return vector.x }
+        set { vector.x = newValue }
+    }
+
+    public var y: VectorType.Component {
+        get { return vector.y }
+        set { vector.y = newValue }
+    }
+
+    public var z: VectorType.Component {
+        get { return vector.z }
+        set { vector.z = newValue }
+    }
+}
+
 /// Point in 2D Euclidean space.
 public struct Point2D: Point {
 
@@ -67,25 +103,16 @@ public struct Point2D: Point {
 
     public var vector: vec2
 
-    public var x: Float {
-        get { return vector.x }
-        set { vector.x = newValue }
-    }
-    public var y: Float {
-        get { return vector.y }
-        set { vector.y = newValue }
-    }
-
-    public init (_ vector: vec2) {
+    public init (_ vector: VectorType) {
         self.vector = vector
     }
 
-    public init (_ x: Float, _ y: Float) {
-        self.vector = vec2(x, y)
+    public init (_ x: VectorType.Component, _ y: VectorType.Component) {
+        self.vector = VectorType(x, y)
     }
 }
 
-// SWIFT EVOLUTION: Should be able to just extend `Point`.
+// FIXME: Should just extend `Point`.
 
 extension Point2D {
 
@@ -103,7 +130,7 @@ extension Point2D {
 extension Point2D: CustomStringConvertible {
 
     public var description: String {
-        return "Point2D(x: \(self.x), y: \(self.y))"
+        return "Point(x: \(self.x), y: \(self.y))"
     }
 }
 
@@ -114,21 +141,6 @@ public struct Point3D: Point {
     public typealias TransformMatrixType = mat4
 
     public var vector: vec3
-
-    public var x: Float {
-        get { return vector.x }
-        set { vector.x = newValue }
-    }
-
-    public var y: Float {
-        get { return vector.y }
-        set { vector.y = newValue }
-    }
-
-    public var z: Float {
-        get { return vector.z }
-        set { vector.z = newValue }
-    }
 
     public init (_ vector: vec3) {
         self.vector = vector
@@ -155,6 +167,6 @@ extension Point3D {
 extension Point3D: CustomStringConvertible {
 
     public var description: String {
-        return "Point2D(x: \(self.x), y: \(self.y), z: \(self.z))"
+        return "Point(x: \(self.x), y: \(self.y), z: \(self.z))"
     }
 }

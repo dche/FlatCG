@@ -83,8 +83,8 @@ extension Quaternion {
     }
 
     /// Constructs a Quaternion from axis-angle representation.
-    public init (axis: vec3, angle: Float) {
-        let v = axis.normalize
+    public init (axis: Normal3D, angle: Float) {
+        let v = axis.vector
 
         let ha = angle * 0.5
         let a = v * sin(ha)
@@ -110,7 +110,7 @@ extension Quaternion {
     ///
     /// - note: Right-hand rule is used.
     public static func pitch(_ angle: Float) -> Quaternion {
-        return self.init(axis: vec3(1, 0, 0), angle: angle)
+        return self.init(axis: Normal3D(vec3.x), angle: angle)
     }
 
     /// Constructs a `Quaternion` that represents a rotation around y axis.
@@ -119,7 +119,7 @@ extension Quaternion {
     ///
     /// - note: Right-hand rule is used.
     public static func yaw(_ angle: Float) -> Quaternion {
-        return self.init(axis: vec3(0, 1, 0), angle: angle)
+        return self.init(axis: Normal3D(vec3.y), angle: angle)
     }
 
     /// Constructs a `Quaternion` that represents a rotation around z axis.
@@ -128,7 +128,7 @@ extension Quaternion {
     ///
     /// - note: Right-hand rule is used.
     public static func roll(_ angle: Float) -> Quaternion {
-        return self.init(axis: vec3(0, 0, 1), angle: angle)
+        return self.init(axis: Normal3D(vec3.z), angle: angle)
     }
 }
 
@@ -157,7 +157,6 @@ extension Quaternion {
         return Quaternion.roll(angle) * self
     }
 
-    /// Returns the corresponding transform matrix of `self`.
     public var matrix: mat4 {
         let q = _rep
         let c1 = vec4(-(q.y * q.y + q.z * q.z) * 2 + 1, (q.x * q.y + q.w * q.z) * 2, (q.x * q.z - q.w * q.y) * 2, 0)

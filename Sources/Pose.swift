@@ -7,7 +7,7 @@
 import simd
 import GLMath
 
-/// Types that has a position in Euclidean space.
+/// Types that describe poses of solid bodies in Euclidean space.
 ///
 /// This type just records the amount of rotation from initial pose to the
 /// final pose. How the rotation is performed is determined by the concrete
@@ -18,7 +18,7 @@ public protocol Pose: Equatable, CustomDebugStringConvertible {
 
     associatedtype RotationType: Rotation
 
-    /// The position of `self`.
+    /// Position.
     var position: PointType { get set }
 
     /// Amount of rotation from initial pose.
@@ -36,6 +36,9 @@ public protocol Pose: Equatable, CustomDebugStringConvertible {
     /// Right direction.
     var rightDirection: DirectionType { get set }
 
+    //
+    // var objectToWorldTransform: Transform<PointType> { get }
+
     /// Sets the forward direction to the vector from `position` to `at`.
     mutating func look(at: PointType)
 }
@@ -50,7 +53,6 @@ extension Pose {
         return "Pose(position: \(self.position), rotation: \(self.rotation))"
     }
 }
-
 extension Pose {
 
     /// Changes `self`'s `position` to `point`.
@@ -213,7 +215,7 @@ public struct Pose2D: Pose {
 
     public var direction: Normal2D {
         get {
-            return Normal(rotation.apply(Pose2D.initialDirection.vector))
+            return Normal(vector: rotation.apply(Pose2D.initialDirection.vector))
         }
         set {
             let v = newValue.vector
@@ -224,7 +226,7 @@ public struct Pose2D: Pose {
 
     public var rightDirection: Normal2D {
         get {
-            return Normal<Point2D>(rotation.apply(Pose2D.initialRightDirection.vector))
+            return Normal<Point2D>(vector: rotation.apply(Pose2D.initialRightDirection.vector))
         }
         set {
             let v = newValue.vector
@@ -234,7 +236,7 @@ public struct Pose2D: Pose {
     }
 
     public mutating func look(at point: Point2D) {
-        self.direction = Normal(point - self.position)
+        self.direction = Normal(vector: point - self.position)
     }
 
     public static let initialDirection = Normal<Point2D>(vec2(0, 1))
@@ -268,7 +270,7 @@ public struct Pose3D: Pose {
 
     public var direction: Normal3D {
         get {
-            return Normal(rotation.apply(Pose3D.initialDirection.vector))
+            return Normal(vector: rotation.apply(Pose3D.initialDirection.vector))
         }
         set {
             self.rotate(Quaternion(fromDirection: self.direction, to: newValue))
@@ -277,7 +279,7 @@ public struct Pose3D: Pose {
 
     public var rightDirection: Normal3D {
         get {
-            return Normal(rotation.apply(Pose3D.initialRightDirection.vector))
+            return Normal(vector: rotation.apply(Pose3D.initialRightDirection.vector))
         }
         set {
             self.rotate(Quaternion(fromDirection: self.rightDirection, to: newValue))
@@ -286,7 +288,7 @@ public struct Pose3D: Pose {
 
     public var upDirection: Normal3D {
         get {
-            return Normal(cross(rightDirection.vector, direction.vector))
+            return Normal(vector: cross(rightDirection.vector, direction.vector))
         }
         set {
             self.rotate(Quaternion(fromDirection: self.upDirection, to: newValue))
@@ -294,7 +296,7 @@ public struct Pose3D: Pose {
     }
 
     public mutating func look(at point: Point3D) {
-        self.direction = Normal(point - self.position)
+        self.direction = Normal(vector: point - self.position)
     }
 
     public static let initialDirection = Normal<Point3D>(vec3(0, 0, -1))

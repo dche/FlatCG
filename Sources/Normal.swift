@@ -20,7 +20,12 @@ public struct Normal<T: Point>: Equatable {
     /// The vector representation of `self`. It is normalized.
     public let vector: VectorType
 
-    public init (_ vector: VectorType) {
+    init (_ vector: VectorType) {
+        assert(vector.squareLength ~== 1)
+        self.vector = vector
+    }
+
+    public init (vector: VectorType) {
         self.vector = normalize(vector)
     }
 
@@ -47,17 +52,20 @@ extension Normal: CustomDebugStringConvertible {
 extension Normal where T.VectorType: Vector2 {
 
     public init (_ x: Component, _ y: Component) {
-        self.init(VectorType(x, y))
+        self.init(vector: VectorType(x, y))
     }
 }
 
 extension Normal where T.VectorType: Vector3 {
 
     public init (_ x: Component, _ y: Component, _ z: Component) {
-        self.init(VectorType(x, y, z))
+        self.init(vector: VectorType(x, y, z))
     }
 }
 
 public typealias Normal2D = Normal<Point2D>
-
 public typealias Normal3D = Normal<Point3D>
+
+// extension Normal: Transformable {
+//
+// }

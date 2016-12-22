@@ -31,6 +31,9 @@ public protocol Rotation: Equatable, ApproxEquatable, CustomDebugStringConvertib
     ///
     /// - parameter vector: The vector to be rotated.
     func apply(_ vector: VectorType) -> VectorType
+
+    /// Returns the matrix form of the rotation.
+    var matrix: PointType.TransformMatrixType { get }
 }
 
 fileprivate func clamp(_ angle: Float) -> Float {
@@ -69,6 +72,12 @@ public struct Rotation2D: Rotation {
 
     public var inverse: Rotation2D {
         return Rotation2D(angle: -angle)
+    }
+
+    public var matrix: mat3 {
+        let v0 = vec3(_cos, _sin, 0)
+        let v1 = vec3(-_sin, _cos, 0)
+        return mat3(v0, v1, vec3.z)
     }
 
     public func apply(_ vector: vec2) -> vec2 {

@@ -18,8 +18,8 @@ public struct Plane: Equatable {
 
     /// Constructs a `Plane`.
     ///
-    /// - parameter normal:
-    /// - parameter t:
+    /// - parameter normal: The plane normal.
+    /// - parameter t: The distance from origin point to the plane.
     public init (normal: Normal3D, t: Float) {
         self.normal = normal
         self.t = t
@@ -30,7 +30,7 @@ public struct Plane: Equatable {
     public init? (a: Float, b: Float, c: Float, d: Float) {
         let v = vec3(a, b, c)
         guard !(v ~== vec3.zero) else { return nil }
-        self.normal = Normal(v)
+        self.normal = Normal(vector: v)
         self.t = d / v.length
     }
 
@@ -79,6 +79,4 @@ extension Point3D {
     }
 }
 
-// MARK: Plane line relationship.
-
-// TODO: 
+// TODO: Plane line relationship.
